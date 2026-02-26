@@ -3,9 +3,10 @@
 Orchestrates:
   1. Fetch SM definition via Fabric API
   2. Parse TMDL tables / columns / relationships
-  3. (Optional) Apply config overrides for PKs and relationships
-  4. Build ontology definition parts
-  5. Create ontology & upload definition
+  3. (Optional) Verify column types against lakehouse SQL endpoint
+  4. (Optional) Apply config overrides for PKs and relationships
+  5. Build ontology definition parts
+  6. Create ontology & upload definition
 """
 
 from __future__ import annotations
@@ -13,9 +14,15 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
+from azure.core.credentials import TokenCredential
+
 from fabric_iq.api_client import FabricClient
 from fabric_iq.tmdl_parser import parse_semantic_model
 from fabric_iq.definition_builder import build_definition_parts
+from fabric_iq.lakehouse_validator import (
+    validate_lakehouse_types,
+    log_validation_report,
+)
 from fabric_iq.ontology_config import (
     OntologyConfig,
     apply_pk_overrides,
@@ -38,6 +45,10 @@ def create_ontology_from_semantic_model(
     description: str = "Auto-generated from Semantic Model",
     source_schema: str = "",
     config_path: str = "",
+    save_config_path: str = "",
+    exclude_decimal: bool = False,
+    verify_lakehouse: bool = False,
+    credential: TokenCredential | None = None,
 ) -> str:
     """End-to-end: parse SM → build definition → create & upload ontology.
 
@@ -60,6 +71,19 @@ def create_ontology_from_semantic_model(
     config_path:
         Path to an ontology config JSON file.  If non-empty, PK and
         relationship overrides from the file are applied after TMDL parsing.
+    save_config_path:
+        If non-empty, write the detected/resolved PKs and relationships
+        to this JSON file after parsing (and after config overrides).
+        The file can be reviewed and passed back via ``--config``.
+    exclude_decimal:
+        If True, remove columns whose TMDL type is ``decimal``.
+    verify_lakehouse:
+        If True, query the lakehouse SQL endpoint to cross-check column
+        types against the Semantic Model.  Requires ``pyodbc`` and ODBC
+        Driver 18.
+    credential:
+        An Azure ``TokenCredential`` needed for SQL endpoint auth when
+        *verify_lakehouse* is True.
 
     Returns
     -------
@@ -99,12 +123,54 @@ def create_ontology_from_semantic_model(
         sm_def, source_schema_override=source_schema
     )
 
-    # ---- Step 2b: Apply config overrides ----
+    # ---- Step 2a: Verify lakehouse column types ----
+    if verify_lakehouse:
+        logger.info("[2a] Verifying column types against lakehouse SQL endpoint …")
+        if credential is None:
+            logger.warning("  No credential provided — skipping lakehouse verification.")
+        else:
+            report = validate_lakehouse_types(
+                client, credential, workspace_id, lakehouse_id, tables
+            )
+            log_validation_report(report)
+
+    # ---- Step 2b: Exclude decimal columns if requested ----
+    if exclude_decimal:
+        for tname, table in tables.items():
+            decimal_cols = [c.name for c in table.columns if c.data_type == "decimal"]
+            if decimal_cols:
+                table.columns = [c for c in table.columns if c.data_type != "decimal"]
+                # Remove excluded columns from PKs too
+                table.pk_column_names = [
+                    pk for pk in table.pk_column_names if pk not in decimal_cols
+                ]
+                logger.info(
+                    "  %s: excluded %d Decimal columns: %s",
+                    tname, len(decimal_cols), decimal_cols,
+                )
+        logger.info("Decimal columns excluded from ontology definition.")
+
+    # ---- Step 2c: Apply config overrides ----
     if config:
-        logger.info("[2b] Applying config overrides …")
+        logger.info("[2c] Applying config overrides …")
         apply_pk_overrides(tables, config)
         relationships = apply_relationship_overrides(tables, relationships, config)
 
+    # ---- Log PK summary ----
+    logger.info("PK summary:")
+    for tname, tbl in tables.items():
+        pk_info = ", ".join(tbl.pk_column_names) if tbl.pk_column_names else "(none – will infer from relationships)"
+        logger.info("  %-30s PK: [%s]", tname, pk_info)
+    # ---- Save detected config for review/reuse ----
+    if save_config_path:
+        detected_config = generate_config(tables, relationships)
+        save_config(detected_config, save_config_path)
+        logger.info(
+            "Detected config saved to %s (%d entities, %d relationships)",
+            save_config_path,
+            len(detected_config.entities),
+            len(detected_config.relationships) if detected_config.relationships else 0,
+        )
     # ---- Step 3: Build definition parts ----
     logger.info("[3/5] Building ontology definition parts …")
     def_parts = build_definition_parts(

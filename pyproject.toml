@@ -35,6 +35,9 @@ dev = [
     "mypy",
     "types-requests",
 ]
+lakehouse = [
+    "pyodbc>=4.0",
+]
 
 [project.scripts]
 fabric-iq = "fabric_iq.cli:main"

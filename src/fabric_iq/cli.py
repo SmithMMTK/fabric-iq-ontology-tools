@@ -19,6 +19,7 @@ from fabric_iq.api_client import FabricClient, FabricApiError
 from fabric_iq.export_ontology import export_ontology
 from fabric_iq.import_ontology import import_ontology
 from fabric_iq.create_ontology import create_ontology_from_semantic_model, generate_ontology_config
+from fabric_iq.notebook_runner import fix_decimal_columns
 from fabric_iq.models import RemapConfig
 
 
@@ -83,6 +84,43 @@ def _build_parser() -> argparse.ArgumentParser:
     p_create.add_argument(
         "-c", "--config", default="",
         help="Path to ontology config JSON (PK & relationship overrides)",
+    )
+    p_create.add_argument(
+        "--save-config", default="",
+        help="Save detected PKs & relationships to a JSON config file (for review/reuse)",
+    )
+    p_create.add_argument(
+        "--exclude-decimal", action="store_true",
+        help="Exclude Decimal columns from the ontology (Fabric Graph returns null for Decimal)",
+    )
+    p_create.add_argument(
+        "--verify-lakehouse", action="store_true",
+        help="Query lakehouse SQL endpoint to verify column types (detects unsupported types like Decimal)",
+    )
+    p_create.add_argument(
+        "--fix-decimals", action="store_true",
+        help="Auto-fix decimal columns in the lakehouse before creating the ontology "
+             "(creates and runs a PySpark notebook in Fabric)",
+    )
+
+    # ---- fix-decimals ----
+    p_fix = sub.add_parser(
+        "fix-decimals",
+        help="Cast decimal columns in lakehouse tables to double (runs a PySpark notebook in Fabric)",
+    )
+    p_fix.add_argument("-w", "--workspace-id", required=True)
+    p_fix.add_argument("-l", "--lakehouse-id", required=True)
+    p_fix.add_argument(
+        "-t", "--tables", nargs="*", default=None,
+        help="Specific table names to fix (default: auto-detect all)",
+    )
+    p_fix.add_argument(
+        "--target-type", default="double",
+        help="PySpark type to cast decimal columns to (default: double)",
+    )
+    p_fix.add_argument(
+        "--no-cleanup", action="store_true",
+        help="Keep the temporary notebook in the workspace after execution",
     )
 
     # ---- generate-config ----
@@ -161,6 +199,17 @@ def main(argv: list[str] | None = None) -> int:
             )
 
         elif args.command == "create":
+            # Auto-fix decimals in lakehouse before creating ontology
+            if args.fix_decimals:
+                logger.info("Running decimal column fix before ontology creation …")
+                fix_result = fix_decimal_columns(
+                    client, credential,
+                    args.workspace_id, args.lakehouse_id,
+                    target_type="double",
+                )
+                if not fix_result.success and fix_result.error_message:
+                    logger.warning("Decimal fix: %s", fix_result.error_message)
+
             create_ontology_from_semantic_model(
                 client,
                 args.workspace_id,
@@ -170,7 +219,29 @@ def main(argv: list[str] | None = None) -> int:
                 description=args.description,
                 source_schema=args.source_schema,
                 config_path=args.config,
+                save_config_path=args.save_config,
+                exclude_decimal=args.exclude_decimal,
+                verify_lakehouse=args.verify_lakehouse,
+                credential=credential,
             )
+
+        elif args.command == "fix-decimals":
+            fix_result = fix_decimal_columns(
+                client, credential,
+                args.workspace_id, args.lakehouse_id,
+                table_names=args.tables,
+                target_type=args.target_type,
+                cleanup=not args.no_cleanup,
+            )
+            if fix_result.success:
+                logger.info(
+                    "Fixed %d columns in %d tables.",
+                    fix_result.total_columns_fixed,
+                    len(fix_result.tables_fixed),
+                )
+            elif fix_result.error_message:
+                logger.error("Fix failed: %s", fix_result.error_message)
+                return 1
 
         elif args.command == "generate-config":
             generate_ontology_config(

@@ -22,8 +22,12 @@ MAX_WAIT_SECONDS = 300
 # TMDL data-type → Ontology value-type mapping
 #
 # Known Fabric IQ limitations (as of 2026-02):
-#   - Decimal type is NOT supported by Fabric Graph → mapped to Double.
-#     See: https://learn.microsoft.com/en-us/fabric/iq/ontology/resources-troubleshooting
+#   - Decimal type is NOT supported by Fabric Graph.  If the underlying
+#     lakehouse delta table stores a column as Decimal, queries return null
+#     regardless of the ontology valueType.  We map decimal → String so that
+#     the value is at least readable.  Use --exclude-decimal to strip these
+#     columns entirely.
+#     See: https://learn.microsoft.com/en-us/fabric/iq/ontology/concepts-generate#lakehouse-tables
 #   - Column names with special chars (,;{}()\n\t= and spaces) break the
 #     preview experience due to unsupported column mapping on delta tables.
 #   - Data binding requires Direct Lake mode SM (Import mode not supported).
@@ -32,7 +36,7 @@ MAX_WAIT_SECONDS = 300
 TMDL_TYPE_MAP: dict[str, str] = {
     "int64": "BigInt",
     "double": "Double",
-    "decimal": "Double",   # Fabric Graph does not support Decimal → use Double
+    "decimal": "String",   # Fabric Graph does not support Decimal → map to String
     "string": "String",
     "boolean": "Boolean",
     "dateTime": "DateTime",

@@ -136,7 +136,7 @@ def compute_entity_id_parts(
                 col.ontology_id for col in table.columns if col.name in pk_set
             ]
             if id_parts:
-                logger.debug(
+                logger.info(
                     "  %s: entityIdParts from detected PK columns %s",
                     name, table.pk_column_names,
                 )

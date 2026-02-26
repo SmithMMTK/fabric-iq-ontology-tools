@@ -73,7 +73,8 @@ def parse_table(tmdl: str, *, source_schema_override: str = "") -> Table | None:
 
         if col_data_type == "decimal":
             logger.warning(
-                "  Column '%s': Decimal type not supported by Fabric Graph → mapped to Double",
+                "  Column '%s': Decimal type not supported by Fabric Graph → mapped to String "
+                "(use --exclude-decimal to remove, or cast to Double in lakehouse)",
                 col_name,
             )
 
@@ -235,12 +236,13 @@ def parse_semantic_model(
         table = parse_table(tmdl, source_schema_override=source_schema_override)
         if table:
             tables[table.name] = table
+            pk_info = ", ".join(table.pk_column_names) if table.pk_column_names else "(none detected)"
             logger.info(
-                "  Table: %s.%s (%d columns) → EntityType %s",
+                "  Table: %s.%s (%d columns, PK: [%s])",
                 table.schema,
                 table.name,
                 len(table.columns),
-                table.entity_type_id,
+                pk_info,
             )
 
     # ---- Parse relationships ----
