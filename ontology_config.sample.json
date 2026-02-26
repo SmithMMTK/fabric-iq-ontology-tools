@@ -1,0 +1,104 @@
+{
+  "_comment": "Ontology config sample. Only include entities/relationships you want to override.",
+  "entities": {
+    "Address": {
+      "pk": ["AddressID"]
+    },
+    "Customer": {
+      "pk": ["CustomerID"]
+    },
+    "CustomerAddress": {
+      "pk": ["CustomerID", "AddressID"]
+    },
+    "Product": {
+      "pk": ["ProductID"]
+    },
+    "ProductCategory": {
+      "pk": ["ProductCategoryID"]
+    },
+    "ProductDescription": {
+      "pk": ["ProductDescriptionID"]
+    },
+    "ProductModel": {
+      "pk": ["ProductModelID"]
+    },
+    "ProductModelProductDescription": {
+      "pk": ["ProductModelID", "ProductDescriptionID"]
+    },
+    "SalesOrderDetail": {
+      "pk": ["SalesOrderID", "SalesOrderDetailID"],
+      "_comment": "Example: lakehouse table/column name differs from semantic model",
+      "lakehouse_table": "sales_order_detail",
+      "lakehouse_schema": "raw",
+      "column_mappings": {
+        "SalesOrderID": "sales_order_id",
+        "SalesOrderDetailID": "sales_order_detail_id",
+        "OrderQty": "order_qty",
+        "ProductID": "product_id",
+        "UnitPrice": "unit_price",
+        "UnitPriceDiscount": "unit_price_discount",
+        "LineTotal": "line_total",
+        "ModifiedDate": "modified_date"
+      }
+    },
+    "SalesOrderHeader": {
+      "pk": ["SalesOrderID"]
+    }
+  },
+  "relationships": [
+    {
+      "from_table": "CustomerAddress",
+      "from_column": "CustomerID",
+      "to_table": "Customer",
+      "to_column": "CustomerID"
+    },
+    {
+      "from_table": "CustomerAddress",
+      "from_column": "AddressID",
+      "to_table": "Address",
+      "to_column": "AddressID"
+    },
+    {
+      "from_table": "SalesOrderHeader",
+      "from_column": "CustomerID",
+      "to_table": "Customer",
+      "to_column": "CustomerID"
+    },
+    {
+      "from_table": "SalesOrderDetail",
+      "from_column": "SalesOrderID",
+      "to_table": "SalesOrderHeader",
+      "to_column": "SalesOrderID"
+    },
+    {
+      "from_table": "SalesOrderDetail",
+      "from_column": "ProductID",
+      "to_table": "Product",
+      "to_column": "ProductID"
+    },
+    {
+      "from_table": "Product",
+      "from_column": "ProductCategoryID",
+      "to_table": "ProductCategory",
+      "to_column": "ProductCategoryID"
+    },
+    {
+      "from_table": "Product",
+      "from_column": "ProductModelID",
+      "to_table": "ProductModel",
+      "to_column": "ProductModelID"
+    },
+    {
+      "from_table": "ProductModelProductDescription",
+      "from_column": "ProductModelID",
+      "to_table": "ProductModel",
+      "to_column": "ProductModelID"
+    },
+    {
+      "from_table": "ProductModelProductDescription",
+      "from_column": "ProductDescriptionID",
+      "to_table": "ProductDescription",
+      "to_column": "ProductDescriptionID"
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+# Byte-compiled / optimized
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backup of original PS1 project
+backup/
+
+# Exported ontology files (generated)
+ontology-export/
+compare/
+
+# Scratch / temporary scripts
+compare_ontologies.py
+
+# Legacy PowerShell script (superseded by Python)
+FabricIQ-OntologyExportImport.ps1
+
+# Environment / secrets
+.env
+
+# pytest
+.pytest_cache/
