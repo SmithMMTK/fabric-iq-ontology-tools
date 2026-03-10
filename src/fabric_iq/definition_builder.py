@@ -170,6 +170,9 @@ def compute_entity_id_parts(
 # Individual part builders
 # ---------------------------------------------------------------------------
 
+_VALID_KEY_VALUE_TYPES = {"String", "BigInt"}
+
+
 def build_entity_type(
     table: Table,
     entity_id_parts: list[str] | None = None,
@@ -185,16 +188,26 @@ def build_entity_type(
     if entity_id_parts is None:
         entity_id_parts = [table.columns[0].ontology_id]
 
-    properties = [
-        {
+    id_parts_set = set(entity_id_parts)
+
+    properties = []
+    for col in table.columns:
+        vtype = col.value_type
+        # Entity keys only accept String or BigInt; coerce others to String
+        if col.ontology_id in id_parts_set and vtype not in _VALID_KEY_VALUE_TYPES:
+            logger.warning(
+                "  %s.%s: coercing entityIdParts valueType '%s' → 'String' "
+                "(only String/BigInt allowed for keys)",
+                table.name, col.name, vtype,
+            )
+            vtype = "String"
+        properties.append({
             "id": col.ontology_id,
             "name": col.name,
             "redefines": None,
             "baseTypeNamespaceType": None,
-            "valueType": col.value_type,
-        }
-        for col in table.columns
-    ]
+            "valueType": vtype,
+        })
 
     return {
         "$schema": SCHEMA_ENTITY_TYPE,
@@ -338,7 +351,40 @@ def build_contextualization(
     ctx_id = new_guid()
     col_map = column_mappings or {}
 
-    # targetKeyRefBindings: map ALL entityIdParts of the target (from) entity
+    # --- sourceKeyRefBindings ---
+    # Must bind ALL entityIdParts of the source entity (to-table / PK side).
+    # For each PK column in the source entity, find the matching FK column
+    # in the from-table (by name).  The explicit rel column is always included.
+    source_key_ref_bindings = []
+    if entity_id_parts_map:
+        to_id_parts = set(entity_id_parts_map.get(rel.to_table, []))
+    else:
+        to_id_parts = {to_col_prop.ontology_id}
+
+    to_col_by_id = {c.ontology_id: c for c in to_table.columns}
+    from_col_by_name = {c.name: c for c in from_table.columns}
+
+    for pk_id in (c.ontology_id for c in to_table.columns if c.ontology_id in to_id_parts):
+        pk_col = to_col_by_id[pk_id]
+        # Try to find matching FK column in the from-table by name
+        fk_col_name = pk_col.name if pk_col.name in from_col_by_name else None
+        # If this is the explicit relationship column, use rel.from_col
+        if pk_col.name == rel.to_col:
+            fk_col_name = rel.from_col
+        if fk_col_name is None:
+            logger.warning(
+                "Cannot find FK column for source PK '%s' in table '%s' – "
+                "skipping contextualization for %s → %s",
+                pk_col.name, rel.from_table, rel.from_table, rel.to_table,
+            )
+            return None
+        source_key_ref_bindings.append({
+            "sourceColumnName": col_map.get(fk_col_name, fk_col_name),
+            "targetPropertyId": pk_id,
+        })
+
+    # --- targetKeyRefBindings ---
+    # Map ALL entityIdParts of the target (from) entity
     if entity_id_parts_map:
         from_id_parts = set(entity_id_parts_map.get(rel.from_table, []))
     else:
@@ -363,12 +409,7 @@ def build_contextualization(
             "sourceSchema": lakehouse_schema or from_table.schema,
             "sourceType": "LakehouseTable",
         },
-        "sourceKeyRefBindings": [
-            {
-                "sourceColumnName": col_map.get(rel.from_col, rel.from_col),
-                "targetPropertyId": to_col_prop.ontology_id,
-            }
-        ],
+        "sourceKeyRefBindings": source_key_ref_bindings,
         "targetKeyRefBindings": target_key_ref_bindings,
     }
     return ctx_id, payload

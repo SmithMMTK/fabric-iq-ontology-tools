@@ -244,12 +244,38 @@ def generate_config(
     """Build an :class:`OntologyConfig` from already-parsed TMDL data.
 
     This captures the heuristically-detected PKs and TMDL relationships
-    so the user can review and edit them.
+    so the user can review and edit them.  For tables with no explicit PK,
+    the inferred entityIdParts (from FK columns) are included so the
+    config is transparent about what the tool will actually use.
     """
-    entities = {
-        name: EntityConfig(pk=list(t.pk_column_names))
-        for name, t in sorted(tables.items())
-    }
+    # Lazy import to avoid circular dependency
+    from fabric_iq.definition_builder import (
+        compute_entity_id_parts,
+        normalize_relationships,
+    )
+
+    norm_rels = normalize_relationships(tables, relationships)
+    id_parts_map = compute_entity_id_parts(tables, norm_rels)
+
+    # Build a reverse lookup: ontology_id → column name
+    col_name_by_id: dict[str, str] = {}
+    for t in tables.values():
+        for c in t.columns:
+            col_name_by_id[c.ontology_id] = c.name
+
+    entities = {}
+    for name, t in sorted(tables.items()):
+        if t.pk_column_names:
+            pk = list(t.pk_column_names)
+        else:
+            # Resolve inferred entityIdParts back to column names
+            pk = [
+                col_name_by_id[oid]
+                for oid in id_parts_map.get(name, [])
+                if oid in col_name_by_id
+            ]
+        entities[name] = EntityConfig(pk=pk)
+
     rels = [
         RelationshipConfig(
             from_table=r.from_table,

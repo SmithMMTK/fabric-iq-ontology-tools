@@ -161,6 +161,19 @@ class TestGenerateConfig:
         assert cfg.relationships[0].from_table == "B"
         assert cfg.relationships[0].to_column == "AID"
 
+    def test_infers_pk_for_fact_table(self):
+        """Tables with no explicit PK should get inferred PKs from FK columns."""
+        tables = {
+            "Dim": _make_table("Dim", ["DimID", "Name"], pk=["DimID"]),
+            "Fact": _make_table("Fact", ["DimID", "Amount"]),  # no PK
+        }
+        rels = [Relationship("r1", "Fact", "DimID", "Dim", "DimID")]
+        cfg = generate_config(tables, rels)
+        assert cfg.entities["Dim"].pk == ["DimID"]
+        # Fact should have inferred PK from FK column
+        assert "DimID" in cfg.entities["Fact"].pk
+        assert len(cfg.entities["Fact"].pk) > 0
+
 
 # ---------------------------------------------------------------------------
 # Lakehouse mapping round-trip
