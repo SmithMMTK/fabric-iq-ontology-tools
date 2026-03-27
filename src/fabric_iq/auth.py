@@ -20,12 +20,12 @@ import os
 import time
 from dataclasses import dataclass
 
+from azure.core.credentials import AccessToken, TokenCredential
 from azure.identity import (
     AzureCliCredential,
     AzurePowerShellCredential,
     DefaultAzureCredential,
 )
-from azure.core.credentials import AccessToken, TokenCredential
 
 from fabric_iq.config import FABRIC_RESOURCE_URL
 
@@ -54,7 +54,7 @@ def get_credential(*, prefer_cli: bool = False) -> TokenCredential:
 
     Resolution order:
       1. ``FABRIC_ACCESS_TOKEN`` env var  (static JWT)
-      2. Azure CLI  (``az login``)
+      2. Azure CLI  (``az login``)           – only when ``prefer_cli=True``
       3. Azure PowerShell  (``Connect-AzAccount``)
       4. ``DefaultAzureCredential``
     """
