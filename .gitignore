@@ -36,6 +36,10 @@ compare_ontologies.py
 # Legacy PowerShell script (superseded by Python)
 FabricIQ-OntologyExportImport.ps1
 
+# User-specific ontology config files (may contain real schema details)
+ontology_config.json
+ontology_config copy.json
+
 # Environment / secrets
 .env
 
