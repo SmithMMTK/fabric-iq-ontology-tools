@@ -1,11 +1,6 @@
 # Fabric IQ Ontology Tools — Hackathon Guide
 
-> **Comprehensive documentation for building, running, and extending the Fabric IQ Ontology CLI tool.**
-> Use this guide to get up and running quickly during the hackathon.
-
----
-
-## Table of Contents
+> ## Table of Contents
 
 1. [What Is This Project?](#what-is-this-project)
 2. [Key Concepts](#key-concepts)
@@ -15,6 +10,7 @@
 6. [Environment Configuration](#environment-configuration)
 7. [Authentication](#authentication)
 8. [CLI Command Reference](#cli-command-reference)
+
    - [list](#list)
    - [export](#export)
    - [import](#import)
@@ -61,17 +57,17 @@
 
 Before diving in, make sure you understand these terms:
 
-| Term                  | Description                                                                                                                  |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Term                  | Description                                                                                          |
+| --------------------- | ---------------------------------------------------------------------------------------------------- |
 | **Ontology**          | A Fabric IQ item that defines entities (tables), their properties (columns), relationships, and data bindings to a Lakehouse |
-| **Semantic Model**    | A Power BI / Fabric Semantic Model with TMDL definitions describing tables, columns, relationships                           |
-| **Lakehouse**         | A Fabric Lakehouse storing Delta tables that the ontology binds to                                                           |
-| **TMDL**              | Tabular Model Definition Language — the text-based format Fabric uses for Semantic Model definitions                         |
-| **Entity**            | An ontology concept mapped to a table (e.g., `Customer`, `Product`)                                                          |
-| **EntityIdParts**     | The primary key columns that uniquely identify an entity instance                                                            |
-| **Data Binding**      | The link between an entity and its underlying Lakehouse table                                                                |
-| **Contextualization** | The link between a relationship and the FK/PK columns in the Lakehouse                                                       |
-| **LRO**               | Long Running Operation — Fabric API pattern where you get a 202 + Location header and poll for completion                    |
+| **Semantic Model**    | A Power BI / Fabric Semantic Model with TMDL definitions describing tables, columns, relationships   |
+| **Lakehouse**         | A Fabric Lakehouse storing Delta tables that the ontology binds to                                   |
+| **TMDL**              | Tabular Model Definition Language — the text-based format Fabric uses for Semantic Model definitions |
+| **Entity**            | An ontology concept mapped to a table (e.g., `Customer`, `Product`)                                  |
+| **EntityIdParts**     | The primary key columns that uniquely identify an entity instance                                    |
+| **Data Binding**      | The link between an entity and its underlying Lakehouse table                                        |
+| **Contextualization** | The link between a relationship and the FK/PK columns in the Lakehouse                               |
+| **LRO**               | Long Running Operation — Fabric API pattern where you get a 202 + Location header and poll for completion |
 
 ### Ontology Direction Convention
 
@@ -162,13 +158,13 @@ Semantic Model (TMDL)
 
 ## Prerequisites
 
-| Requirement            | Details                                                                                                                                                                                          |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Python**             | 3.10 or higher                                                                                                                                                                                   |
-| **Azure CLI**          | Logged in via `az login` — _or_ Azure PowerShell via `Connect-AzAccount` — _or_ `FABRIC_ACCESS_TOKEN` env var                                                                                    |
-| **Fabric Permissions** | `Item.ReadWrite.All` on the target workspace                                                                                                                                                     |
+| Requirement            | Details                                                                                              |
+| ---------------------- | ---------------------------------------------------------------------------------------------------- |
+| **Python**             | 3.10 or higher                                                                                       |
+| **Azure CLI**          | Logged in via `az login` — _or_ Azure PowerShell via `Connect-AzAccount` — _or_ `FABRIC_ACCESS_TOKEN` env var |
+| **Fabric Permissions** | `Item.ReadWrite.All` on the target workspace                                                         |
 | **ODBC Driver 18**     | _(Optional)_ Only needed for `--verify-lakehouse` and `fix-decimals` — install [ODBC Driver 18 for SQL Server](https://learn.microsoft.com/sql/connect/odbc/download-odbc-driver-for-sql-server) |
-| **pyodbc**             | _(Optional)_ Only needed for lakehouse SQL endpoint features — `pip install pyodbc`                                                                                                              |
+| **pyodbc**             | _(Optional)_ Only needed for lakehouse SQL endpoint features — `pip install pyodbc`                  |
 
 ---
 
@@ -976,21 +972,21 @@ lakehouse_id = os.getenv("LAKEHOUSE_ID")
 
 ## Troubleshooting
 
-| Problem                            | Solution                                                                                                                    |
-| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `Authentication failed`            | Run `az login` or set `FABRIC_ACCESS_TOKEN` in `.env`                                                                       |
-| `No ontologies found`              | Check workspace ID and permissions (`Item.ReadWrite.All`)                                                                   |
-| `Environment variables not loaded` | Run `source <(grep -v '^#' .env \| sed 's/^/export /')` or verify with `echo $WORKSPACE_ID`                                 |
-| `Command not found: fabric-iq`     | Run `pip install -e .` from project root or activate virtual environment                                                    |
-| `LRO timed out after 300s`         | Increase with `--api-base` or wait and retry — Fabric can be slow                                                           |
-| `Decimal columns show null`        | Run `fabric-iq fix-decimals` or use `--fix-decimals` with `create`                                                          |
-| `pyodbc not installed`             | `pip install pyodbc` — only needed for `--verify-lakehouse` and `fix-decimals`                                              |
+| Problem                            | Solution                                                                                             |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `Authentication failed`            | Run `az login` or set `FABRIC_ACCESS_TOKEN` in `.env`                                                |
+| `No ontologies found`              | Check workspace ID and permissions (`Item.ReadWrite.All`)                                            |
+| `Environment variables not loaded` | Run `source <(grep -v '^#' .env \                                                                    |
+| `Command not found: fabric-iq`     | Run `pip install -e .` from project root or activate virtual environment                             |
+| `LRO timed out after 300s`         | Increase with `--api-base` or wait and retry — Fabric can be slow                                    |
+| `Decimal columns show null`        | Run `fabric-iq fix-decimals` or use `--fix-decimals` with `create`                                   |
+| `pyodbc not installed`             | `pip install pyodbc` — only needed for `--verify-lakehouse` and `fix-decimals`                       |
 | `ODBC Driver 18 not found`         | Install from [Microsoft ODBC driver page](https://learn.microsoft.com/sql/connect/odbc/download-odbc-driver-for-sql-server) |
-| `PK detection wrong`               | Use `--save-config` to inspect, edit the JSON, re-run with `-c`                                                             |
-| `Relationship direction wrong`     | The tool normalizes directions automatically; if still wrong, use config overrides                                          |
-| `Column names with spaces`         | Rename columns in lakehouse — Fabric Graph doesn't support special chars in column mappings                                 |
-| `HTTP 403 on notebook run`         | Ensure you have execute permissions on the workspace                                                                        |
-| `Unexpected HTTP 429`              | Rate-limited by Fabric — wait and retry                                                                                     |
+| `PK detection wrong`               | Use `--save-config` to inspect, edit the JSON, re-run with `-c`                                      |
+| `Relationship direction wrong`     | The tool normalizes directions automatically; if still wrong, use config overrides                   |
+| `Column names with spaces`         | Rename columns in lakehouse — Fabric Graph doesn't support special chars in column mappings          |
+| `HTTP 403 on notebook run`         | Ensure you have execute permissions on the workspace                                                 |
+| `Unexpected HTTP 429`              | Rate-limited by Fabric — wait and retry                                                              |
 
 ---
 
