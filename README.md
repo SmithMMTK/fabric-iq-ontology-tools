@@ -107,29 +107,29 @@ TMDL Convention:              Ontology Convention:
     ┌──────────┴──────────────────────────────────────────────────┐
     │                        Core Modules                         │
     │                                                             │
-    │  ┌─────────────────┐  ┌──────────────────┐  ┌───────────┐ │
-    │  │  tmdl_parser.py │  │ definition_      │  │ ontology_ │ │
-    │  │  Parse SM TMDL  │  │ builder.py       │  │ config.py │ │
-    │  │  → Tables,      │→ │ Build ontology   │← │ PK & rel  │ │
-    │  │    Columns,     │  │ JSON parts       │  │ overrides │ │
-    │  │    Relationships│  │ (EntityTypes,    │  └───────────┘ │
-    │  └─────────────────┘  │  DataBindings,   │                │
-    │                       │  Relationships,  │                │
-    │                       │  Contextualiz.)  │                │
-    │                       └──────────────────┘                │
+    │  ┌─────────────────┐  ┌──────────────────┐  ┌───────────┐   │
+    │  │  tmdl_parser.py │  │ definition_      │  │ ontology_ │   │
+    │  │  Parse SM TMDL  │  │ builder.py       │  │ config.py │   │
+    │  │  → Tables,      │→ │ Build ontology   │← │ PK & rel  │   │
+    │  │    Columns,     │  │ JSON parts       │  │ overrides │   │
+    │  │    Relationships│  │ (EntityTypes,    │  └───────────┘   │
+    │  └─────────────────┘  │  DataBindings,   │                  │
+    │                       │  Relationships,  │                  │
+    │                       │  Contextualiz.)  │                  │
+    │                       └──────────────────┘                  │
     │                                                             │
-    │  ┌─────────────────┐  ┌──────────────────┐                │
-    │  │ lakehouse_      │  │ notebook_        │                │
-    │  │ validator.py    │  │ runner.py        │                │
-    │  │ SQL endpoint    │  │ Create & run     │                │
-    │  │ type checking   │  │ PySpark notebook │                │
-    │  └─────────────────┘  └──────────────────┘                │
+    │  ┌─────────────────┐  ┌──────────────────┐                  │
+    │  │ lakehouse_      │  │ notebook_        │                  │
+    │  │ validator.py    │  │ runner.py        │                  │
+    │  │ SQL endpoint    │  │ Create & run     │                  │
+    │  │ type checking   │  │ PySpark notebook │                  │
+    │  └─────────────────┘  └──────────────────┘                  │
     │                                                             │
-    │  ┌─────────────────┐  ┌──────────────────┐                │
-    │  │ export_         │  │ import_          │                │
-    │  │ ontology.py     │  │ ontology.py      │                │
-    │  │ Download + save │  │ Load + upload    │                │
-    │  └─────────────────┘  └──────────────────┘                │
+    │  ┌─────────────────┐  ┌──────────────────┐                  │
+    │  │ export_         │  │ import_          │                  │
+    │  │ ontology.py     │  │ ontology.py      │                  │
+    │  │ Download + save │  │ Load + upload    │                  │
+    │  └─────────────────┘  └──────────────────┘                  │
     └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -194,6 +194,38 @@ pip install -e ".[lakehouse]"
 ```
 
 After installation, the `fabric-iq` command is available globally in your environment.
+
+---
+
+## This is a missing part, due this hackthon assume all Fabric Workspace and Ontology already created, 
+
+Recommended to have similary document here : https://learn.microsoft.com/en-us/fabric/iq/ontology/tutorial-0-introduction?pivots=semantic-model
+
+---
+
+## Required tenant settings for ontology (preview)
+
+https://learn.microsoft.com/en-us/fabric/iq/ontology/overview-tenant-settings
+
+### Ontology item (preview)
+
+From Fabric Admin portal -> Tenant settings -> Enable Ontology item (preview)
+
+### Graph (preview)
+
+From Fabric Admin portal -> Tenant settings -> Enable User can create Graph (preview)
+
+### Data agent item types (preview)
+
+From Fabric Admin portal -> Tenant settings -> Users can create and share Data agent item types (preview) ** Can't found in Fabric Admin Portal
+
+### Copilot and Azure OpenAI Service
+
+These settings are optional, but required if you want to use ontology (preview) with a Fabric data agent:
+
+- Users can use Copilot and other features powered by Azure OpenAI
+- Data sent to Azure OpenAI can be processed outside your capacity's geographic region, compliance boundary, or national cloud instance
+- Data sent to Azure OpenAI can be stored outside your capacity's geographic region, compliance boundary, or national cloud instance
 
 ---
 
